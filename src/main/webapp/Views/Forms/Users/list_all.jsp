@@ -68,7 +68,7 @@
                     </td>
                     <td><%= h(user.getRole()) %></td>
                     <td><%= user.getCreatedAt() != null ? user.getCreatedAt().format(dateFormat) : "" %></td>
-                    <td>
+                    <td class="actions-cell">
                         <a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=search&code=<%= h(java.net.URLEncoder.encode(user.getCode(), "UTF-8")) %>">Editar</a> |
                         <a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=deletefl&code=<%= h(java.net.URLEncoder.encode(user.getCode(), "UTF-8")) %>"
                            onclick="return confirm('¿Seguro que deseas eliminar este usuario?');">Eliminar</a>
