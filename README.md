@@ -106,6 +106,21 @@ Navegador ──> /Controllers/UserController.jsp?action=create
 | `listAll` | `handleListAllUsers` | Lista todos (o filtra con `q`) |
 | `logout` | `handleLogout` | Cierra la sesión |
 
+### Acciones de `EmisoraController.jsp`
+
+Mismo patrón. El inicio y cierre de sesión solo los atiende `UserController.jsp`.
+
+| action | Método | Resultado |
+|---|---|---|
+| `showCreateForm` | `showCreateEmisoraForm` | Redirige a `create.jsp` |
+| `create` | `handleCreateEmisora` | Convierte el formulario (`EmisoraService.buildEmisora`), valida, crea y muestra la lista |
+| `showFindForm` | `showFindForm` | Abre `find_edit_delete.jsp` vacío |
+| `search` | `handleSearch` | Busca por código y guarda `searchedEmisora` en la sesión |
+| `update` | `handleUpdateEmisora` | Actualiza la emisora buscada |
+| `delete` | `handleDeleteEmisora` | Elimina la emisora buscada |
+| `deletefl` | `handleDeleteEmisoraFromList` | Elimina desde el enlace de la lista |
+| `listAll` | `handleListAllEmisoras` | Lista todas (o filtra con `q`) |
+
 ## Base de datos
 
 Scripts en la carpeta [`db/`](db/) (ejecutarlos en orden, por ejemplo desde MySQL Workbench con
@@ -207,7 +222,7 @@ de abrir NetBeans.
 - [x] Persistencia y servicio de Usuario (excepciones, `UserCRUD`, `UserService`)
 - [x] Controlador JSP y vistas de Usuario (`UserController.jsp`, login, create, find_edit_delete, list_all)
 - [x] Persistencia y servicio de Emisora (excepciones, `EmisoraCRUD`, `EmisoraService`)
-- [ ] Controlador JSP y vistas de Emisora
+- [x] Controlador JSP y vistas de Emisora (`EmisoraController.jsp`, create, find_edit_delete, list_all)
 - [ ] Login, sesión y control de acceso
 - [ ] Reportes parametrizados (2 por entidad)
 - [ ] Recuperación de clave por correo

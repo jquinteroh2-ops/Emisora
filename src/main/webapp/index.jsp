@@ -32,6 +32,13 @@
         <%-- Si ha iniciado sesión, mostramos el menú de gestión --%>
         <h3>Hola, <%= h(loggedInUser.getName()) %> (Has iniciado sesión como <%= h(loggedInUser.getRole()) %>)</h3>
 
+        <h2>Emisoras</h2>
+        <ul class="menu">
+            <li><a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=showCreateForm">Agregar Emisora</a></li>
+            <li><a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=showFindForm">Buscar Emisora</a></li>
+            <li><a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=listAll">Listar Todas las Emisoras</a></li>
+        </ul>
+
         <h2>Usuarios</h2>
         <ul class="menu">
             <li><a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=showCreateForm">Agregar Usuario</a></li>
