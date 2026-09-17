@@ -107,7 +107,7 @@ de recuperación de clave.)
 
 - [x] Configuración inicial del proyecto (Maven WAR, Tomcat 11, estructura de la guía)
 - [x] Base de datos: script de creación y datos iniciales
-- [ ] Modelo de dominio y conexión a MySQL
+- [x] Modelo de dominio y conexión a MySQL
 - [ ] CRUD de Usuario (persistencia, servicio, controlador JSP y vistas)
 - [ ] CRUD de Emisora
 - [ ] Login, sesión y control de acceso
