@@ -7,6 +7,9 @@
 -- de nuevo (se pierden los datos). Luego ejecute 02_data.sql.
 -- =====================================================================
 
+-- Tildes y eñes correctas sin importar desde dónde se ejecute el script
+SET NAMES utf8mb4;
+
 -- Crear la BD
 CREATE DATABASE IF NOT EXISTS emisora_db
     CHARACTER SET utf8mb4

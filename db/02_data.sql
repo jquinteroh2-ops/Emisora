@@ -4,6 +4,9 @@
 -- Ejecutar DESPUÉS de 01_schema.sql
 -- =====================================================================
 
+-- Tildes y eñes correctas sin importar desde dónde se ejecute el script
+SET NAMES utf8mb4;
+
 USE emisora_db;
 
 -- ---------------------------------------------------------------------
