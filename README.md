@@ -54,10 +54,59 @@ Emisora/
         └── WEB-INF/web.xml
 ```
 
+## Base de datos
+
+Scripts en la carpeta [`db/`](db/) (ejecutarlos en orden, por ejemplo desde MySQL Workbench con
+*File → Open SQL Script* y el botón del rayo ⚡):
+
+1. [`db/01_schema.sql`](db/01_schema.sql) — crea la base `emisora_db` y las tablas `Users` y `Emisoras`
+   (si ya existían, las borra y las crea de nuevo).
+2. [`db/02_data.sql`](db/02_data.sql) — carga 5 usuarios y 14 emisoras de prueba.
+
+Desde la terminal:
+
+```bash
+mysql -u root -p < db/01_schema.sql
+mysql -u root -p < db/02_data.sql
+```
+
+### Tabla `Users`
+
+La guía usa `code`, `password`, `name` y `email`. La actividad pide *id, clave, nombre y rol*, por eso
+se agregó `role`:
+
+| Actividad | Columna | Detalle |
+|---|---|---|
+| id | `code` | Clave primaria (texto), ej. `U001` |
+| clave | `password` | Cifrada con SHA-256 (64 caracteres), nunca en texto plano |
+| nombre | `name` | |
+| rol | `role` | `ADMIN`, `OPERADOR` o `CONSULTA` |
+| — | `email` | Único. Se usa para iniciar sesión (como en la guía) y recuperar la clave |
+| — | `createdAt` | Fecha de registro (reporte por rango de fechas) |
+| — | `resetToken`, `resetTokenExpires` | Código temporal para recuperar la clave por correo |
+
+### Tabla `Emisoras`
+
+Los 12 atributos del ejercicio 25 más `code` como clave primaria (mismo patrón que `Users`):
+`code`, `nombre` (único), `canal`, `bandaFm` (MHz, opcional), `bandaAm` (kHz, opcional), `numLocutores`,
+`genero`, `horario`, `patrocinador`, `pais`, `descripcion`, `numProgramas`, `numCiudades`.
+Toda emisora debe transmitir al menos en FM o en AM.
+
+### Usuarios de prueba
+
+| Email | Clave | Rol |
+|---|---|---|
+| jquinteroh2@unicartagena.edu.co | `Admin2026*` | ADMIN |
+| operador.emisora@yopmail.com | `Operador2026*` | OPERADOR |
+| consulta.emisora@yopmail.com | `Consulta2026*` | CONSULTA |
+
+(Los buzones `@yopmail.com` son públicos: se pueden abrir en <https://yopmail.com> para ver el correo
+de recuperación de clave.)
+
 ## Estado del desarrollo
 
 - [x] Configuración inicial del proyecto (Maven WAR, Tomcat 11, estructura de la guía)
-- [ ] Base de datos: script de creación y datos iniciales
+- [x] Base de datos: script de creación y datos iniciales
 - [ ] Modelo de dominio y conexión a MySQL
 - [ ] CRUD de Usuario (persistencia, servicio, controlador JSP y vistas)
 - [ ] CRUD de Emisora
