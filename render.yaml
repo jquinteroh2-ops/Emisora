@@ -1,0 +1,31 @@
+# Configuración de despliegue en Render (Blueprint).
+# Render lee este archivo, construye la imagen con el Dockerfile y publica la aplicación.
+# Las variables con "sync: false" son secretas: Render las pide al crear el servicio
+# y NO se guardan en GitHub.
+services:
+  - type: web
+    name: emisora
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      # Base de datos MySQL en Aiven
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Correo (Brevo, puerto 2525)
+      - key: MAIL_SMTP_USER
+        sync: false
+      - key: MAIL_SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Dirección pública de la app, usada en el enlace del correo de recuperación
+      - key: APP_BASE_URL
+        sync: false
