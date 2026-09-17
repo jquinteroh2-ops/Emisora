@@ -168,6 +168,50 @@ public class UserCRUD {
         return userList;
     }
 
+    // ---------------------------------------------------------------------
+    // REPORTES PARAMETRIZADOS
+    // ---------------------------------------------------------------------
+
+    // REPORTE 3: usuarios que tienen un rol
+    public List<User> getUsersByRole(String role) throws SQLException {
+        List<User> userList = new ArrayList<>();
+        String query = "SELECT * FROM Users WHERE role = ? ORDER BY name";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setString(1, role);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    userList.add(mapUser(rs));
+                }
+            }
+        }
+        return userList;
+    }
+
+    // REPORTE 4: usuarios registrados desde "start" (incluido) hasta "end" (sin incluir),
+    // del más antiguo al más reciente
+    public List<User> getUsersByCreatedAtRange(LocalDateTime start, LocalDateTime end) throws SQLException {
+        List<User> userList = new ArrayList<>();
+        String query = "SELECT * FROM Users WHERE createdAt >= ? AND createdAt < ? ORDER BY createdAt";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setObject(1, start);
+            stmt.setObject(2, end);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    userList.add(mapUser(rs));
+                }
+            }
+        }
+        return userList;
+    }
+
     // Convierte la fila actual del ResultSet en un objeto User
     private User mapUser(ResultSet rs) throws SQLException {
         return new User(

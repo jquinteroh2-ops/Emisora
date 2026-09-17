@@ -151,6 +151,84 @@ public class EmisoraCRUD {
         return emisoraList;
     }
 
+    // ---------------------------------------------------------------------
+    // REPORTES PARAMETRIZADOS
+    // ---------------------------------------------------------------------
+
+    // REPORTE 1: emisoras de un país; si genero es null, de todos los géneros
+    public List<Emisora> getEmisorasByPaisAndGenero(String pais, String genero) throws SQLException {
+        List<Emisora> emisoraList = new ArrayList<>();
+        String query = (genero == null)
+                ? "SELECT * FROM Emisoras WHERE pais = ? ORDER BY genero, nombre"
+                : "SELECT * FROM Emisoras WHERE pais = ? AND genero = ? ORDER BY nombre";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setString(1, pais);
+            if (genero != null) {
+                stmt.setString(2, genero);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    emisoraList.add(mapEmisora(rs));
+                }
+            }
+        }
+        return emisoraList;
+    }
+
+    // REPORTE 2: emisoras por cobertura (rango de ciudades) con un mínimo de locutores,
+    // de mayor a menor cobertura
+    public List<Emisora> getEmisorasByCobertura(int minCiudades, int maxCiudades, int minLocutores)
+            throws SQLException {
+        List<Emisora> emisoraList = new ArrayList<>();
+        String query = "SELECT * FROM Emisoras "
+                + "WHERE numCiudades BETWEEN ? AND ? AND numLocutores >= ? "
+                + "ORDER BY numCiudades DESC, nombre";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setInt(1, minCiudades);
+            stmt.setInt(2, maxCiudades);
+            stmt.setInt(3, minLocutores);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    emisoraList.add(mapEmisora(rs));
+                }
+            }
+        }
+        return emisoraList;
+    }
+
+    // Países registrados (sin repetir), para el desplegable del reporte 1
+    public List<String> getDistinctPaises() throws SQLException {
+        return getDistinctValues("SELECT DISTINCT pais FROM Emisoras ORDER BY pais");
+    }
+
+    // Géneros registrados (sin repetir), para el desplegable del reporte 1
+    public List<String> getDistinctGeneros() throws SQLException {
+        return getDistinctValues("SELECT DISTINCT genero FROM Emisoras ORDER BY genero");
+    }
+
+    // Ejecuta una consulta de una sola columna y devuelve sus valores
+    private List<String> getDistinctValues(String query) throws SQLException {
+        List<String> values = new ArrayList<>();
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                values.add(rs.getString(1));
+            }
+        }
+        return values;
+    }
+
     // Llena los parámetros ? de INSERT y UPDATE (mismo orden en ambas consultas; code al final)
     private void setEmisoraParameters(PreparedStatement stmt, Emisora emisora) throws SQLException {
         stmt.setString(1, emisora.getNombre());

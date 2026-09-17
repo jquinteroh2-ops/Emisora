@@ -94,6 +94,45 @@ public class EmisoraService {
         return emisoraCrud.searchEmisoras(isBlank(searchTerm) ? "" : searchTerm.trim());
     }
 
+    // ---------------------------------------------------------------------
+    // REPORTES PARAMETRIZADOS (los parámetros llegan como texto desde el formulario)
+    // ---------------------------------------------------------------------
+
+    // REPORTE 1: emisoras de un país y, opcionalmente, de un género (vacío = todos los géneros)
+    public List<Emisora> reportByPaisAndGenero(String pais, String genero)
+            throws InvalidEmisoraException, SQLException {
+        if (isBlank(pais)) {
+            throw new InvalidEmisoraException("Seleccione un país para generar el reporte.");
+        }
+        return emisoraCrud.getEmisorasByPaisAndGenero(pais.trim(), emptyToNull(genero));
+    }
+
+    // REPORTE 2: emisoras que cubren entre minCiudades y maxCiudades y tienen al menos minLocutores
+    public List<Emisora> reportByCobertura(String minCiudades, String maxCiudades, String minLocutores)
+            throws InvalidEmisoraException, SQLException {
+        int min = parseRequiredInt(minCiudades, "El mínimo de ciudades");
+        int max = parseRequiredInt(maxCiudades, "El máximo de ciudades");
+        int locutores = parseRequiredInt(minLocutores, "El mínimo de locutores");
+
+        if (min < 0 || max < 0 || locutores < 0) {
+            throw new InvalidEmisoraException("Los valores del reporte no pueden ser negativos.");
+        }
+        if (min > max) {
+            throw new InvalidEmisoraException("El mínimo de ciudades no puede ser mayor que el máximo.");
+        }
+        return emisoraCrud.getEmisorasByCobertura(min, max, locutores);
+    }
+
+    // Países registrados, para el desplegable del reporte 1
+    public List<String> getPaises() throws SQLException {
+        return emisoraCrud.getDistinctPaises();
+    }
+
+    // Géneros registrados, para el desplegable del reporte 1
+    public List<String> getGeneros() throws SQLException {
+        return emisoraCrud.getDistinctGeneros();
+    }
+
     // Reglas de negocio de una emisora (al crear y al editar)
     private void validateEmisora(Emisora emisora) throws InvalidEmisoraException {
         if (isBlank(emisora.getCode()) || isBlank(emisora.getNombre()) || isBlank(emisora.getCanal())

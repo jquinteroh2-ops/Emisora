@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -113,6 +115,43 @@ public class UserService {
     // Método para buscar usuarios por código, nombre o email
     public List<User> searchUsers(String searchTerm) throws SQLException {
         return userCrud.searchUsers(isBlank(searchTerm) ? "" : searchTerm.trim());
+    }
+
+    // ---------------------------------------------------------------------
+    // REPORTES PARAMETRIZADOS (los parámetros llegan como texto desde el formulario)
+    // ---------------------------------------------------------------------
+
+    // REPORTE 3: usuarios que tienen un rol
+    public List<User> reportByRole(String role) throws InvalidUserException, SQLException {
+        if (isBlank(role) || !ROLES.contains(role)) {
+            throw new InvalidUserException("Seleccione un rol válido: " + String.join(", ", ROLES) + ".");
+        }
+        return userCrud.getUsersByRole(role);
+    }
+
+    // REPORTE 4: usuarios registrados entre dos fechas, ambas incluidas (formato AAAA-MM-DD)
+    public List<User> reportByCreatedAtRange(String fromDate, String toDate)
+            throws InvalidUserException, SQLException {
+        LocalDate from = parseDate(fromDate, "La fecha inicial");
+        LocalDate to = parseDate(toDate, "La fecha final");
+
+        if (from.isAfter(to)) {
+            throw new InvalidUserException("La fecha inicial no puede ser posterior a la fecha final.");
+        }
+        // Desde las 00:00 de "from" hasta antes de las 00:00 del día siguiente a "to"
+        return userCrud.getUsersByCreatedAtRange(from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+    }
+
+    // Convierte un texto AAAA-MM-DD (lo que envía un campo type="date") en LocalDate
+    private LocalDate parseDate(String value, String fieldLabel) throws InvalidUserException {
+        if (isBlank(value)) {
+            throw new InvalidUserException(fieldLabel + " es obligatoria.");
+        }
+        try {
+            return LocalDate.parse(value.trim());
+        } catch (DateTimeParseException e) {
+            throw new InvalidUserException(fieldLabel + " no es válida (formato AAAA-MM-DD).");
+        }
     }
 
     // Cifra la clave con SHA-256 y la devuelve en hexadecimal (64 caracteres).
