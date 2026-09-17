@@ -18,7 +18,11 @@
     <jsp-config>
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>
+            <!-- Fragmentos incluidos con include (ej. WEB-INF/jspf/html.jspf) -->
+            <url-pattern>*.jspf</url-pattern>
             <page-encoding>UTF-8</page-encoding>
+            <!-- Quita las líneas en blanco que dejan las directivas <%@ ... %> -->
+            <trim-directive-whitespaces>true</trim-directive-whitespaces>
         </jsp-property-group>
     </jsp-config>
 

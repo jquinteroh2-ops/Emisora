@@ -1,0 +1,21 @@
+<%--
+    Fragmento: html.jspf
+    Author   : José Quintero
+    Se incluye al inicio de las vistas con:  include file="/WEB-INF/jspf/html.jspf"
+    Está dentro de WEB-INF, así que el navegador no puede abrirlo directamente.
+--%>
+<%!
+    // Muestra un texto de forma segura dentro del HTML.
+    // Si alguien escribe <script> en un nombre, se ve como texto y no se ejecuta (evita XSS).
+    private String h(Object value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toString()
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+%>
