@@ -1,0 +1,48 @@
+<%--
+    Fragmento: auth.jspf
+    Author   : José Quintero
+    CONTROL DE ACCESO por sesión y rol. Se incluye en los controladores y en las vistas internas:
+        include file="/WEB-INF/jspf/auth.jspf"
+    y se usa al inicio de la petición, antes de mostrar o cambiar cualquier dato:
+        if (!checkAccess(request, response, session, "ADMIN")) return;
+
+    Roles:
+      ADMIN    -> todo (emisoras y usuarios)
+      OPERADOR -> consulta, crea, edita y elimina emisoras
+      CONSULTA -> solo lista, busca y consulta reportes de emisoras
+--%>
+<%@ page import="java.io.IOException" %>
+<%@ page import="java.util.Arrays" %>
+<%@ page import="Domain.Model.User" %>
+<%!
+    // Verifica que haya un usuario en la sesión (loggedInUser) y, si se indican roles,
+    // que su rol sea uno de ellos. Si no cumple:
+    //  - sin sesión: muestra el login con un mensaje;
+    //  - rol no permitido: responde 403 (prohibido) y muestra index.jsp con un mensaje.
+    // Devuelve false cuando no hay acceso: quien lo llama debe terminar con "return".
+    private boolean checkAccess(HttpServletRequest request, HttpServletResponse response,
+            HttpSession session, String... allowedRoles) throws ServletException, IOException {
+        User user = (User) session.getAttribute("loggedInUser");
+
+        if (user == null) {
+            request.setAttribute("errorMessage", "Debe iniciar sesión para continuar.");
+            request.getRequestDispatcher("/Views/Forms/Users/login.jsp").forward(request, response);
+            return false;
+        }
+
+        if (allowedRoles.length > 0 && !Arrays.asList(allowedRoles).contains(user.getRole())) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            request.setAttribute("errorMessage", "Su rol (" + user.getRole() + ") no tiene permiso para esta opción.");
+            request.getRequestDispatcher("/index.jsp").forward(request, response);
+            return false;
+        }
+
+        return true;
+    }
+
+    // Indica si el usuario de la sesión tiene alguno de los roles (para mostrar u ocultar opciones)
+    private boolean hasRole(HttpSession session, String... roles) {
+        User user = (User) session.getAttribute("loggedInUser");
+        return user != null && Arrays.asList(roles).contains(user.getRole());
+    }
+%>

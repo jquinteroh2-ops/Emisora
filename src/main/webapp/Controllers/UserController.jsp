@@ -24,12 +24,20 @@
 <%@page import="Business.Exceptions.UserNotFoundException"%>
 <%@page import="Business.Exceptions.DuplicateUserException"%>
 <%@page import="Business.Exceptions.InvalidUserException"%>
+<%@include file="/WEB-INF/jspf/auth.jspf"%>
 <%
     UserService userService = new UserService();
     String action = request.getParameter("action");
 
     if (action == null) {
         action = "list";
+    }
+
+    // CONTROL DE ACCESO: login, authenticate y logout son públicas;
+    // todo lo demás (gestión de usuarios) exige sesión iniciada con rol ADMIN
+    boolean publicAction = action.equals("login") || action.equals("authenticate") || action.equals("logout");
+    if (!publicAction && !checkAccess(request, response, session, "ADMIN")) {
+        return;
     }
 
     switch (action) {
@@ -77,6 +85,12 @@
     private static final String CREATE_VIEW = "/Views/Forms/Users/create.jsp";
     private static final String FIND_EDIT_DELETE_VIEW = "/Views/Forms/Users/find_edit_delete.jsp";
     private static final String LIST_ALL_VIEW = "/Views/Forms/Users/list_all.jsp";
+
+    // Indica si el código corresponde al usuario que inició sesión
+    private boolean isLoggedInUser(HttpSession session, String code) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        return loggedInUser != null && code != null && code.trim().equalsIgnoreCase(loggedInUser.getCode());
+    }
 
     // Método para mostrar el formulario de login
     private void handleLogin(HttpServletRequest request, HttpServletResponse response, HttpSession session)
@@ -176,9 +190,22 @@
         String password = request.getParameter("password");
         String role = request.getParameter("role");
 
+        // Nadie puede cambiar su propio rol (así un ADMIN no se quita los permisos por error)
+        boolean isOwnUser = isLoggedInUser(session, code);
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (isOwnUser && !loggedInUser.getRole().equals(role)) {
+            request.setAttribute("errorMessage", "No puede cambiar su propio rol.");
+            request.getRequestDispatcher(FIND_EDIT_DELETE_VIEW).forward(request, response);
+            return;
+        }
+
         try {
             userService.updateUser(code, name, email, password, role);
-            session.setAttribute("searchedUser", userService.getUserByCode(code));  // Mostramos los datos nuevos
+            User updatedUser = userService.getUserByCode(code);
+            session.setAttribute("searchedUser", updatedUser);  // Mostramos los datos nuevos
+            if (isOwnUser) {
+                session.setAttribute("loggedInUser", updatedUser);  // Si editó sus propios datos, se actualiza la sesión
+            }
             request.setAttribute("successMessage", "Usuario actualizado exitosamente.");
             request.getRequestDispatcher(FIND_EDIT_DELETE_VIEW).forward(request, response);
         } catch (UserNotFoundException e) {
@@ -201,6 +228,12 @@
 
         if (code == null || code.trim().isEmpty()) {
             request.setAttribute("errorMessage", "El código es requerido.");
+            handleListAllUsers(request, response, userService);
+            return;
+        }
+
+        if (isLoggedInUser(session, code)) {
+            request.setAttribute("errorMessage", "No puede eliminar su propio usuario.");
             handleListAllUsers(request, response, userService);
             return;
         }
@@ -231,6 +264,12 @@
         }
 
         String code = searchedUser.getCode();  // Usamos el código del usuario buscado
+
+        if (isLoggedInUser(session, code)) {
+            request.setAttribute("errorMessage", "No puede eliminar su propio usuario.");
+            request.getRequestDispatcher(FIND_EDIT_DELETE_VIEW).forward(request, response);
+            return;
+        }
 
         try {
             userService.deleteUser(code);

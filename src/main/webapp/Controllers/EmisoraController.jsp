@@ -24,12 +24,24 @@
 <%@page import="Business.Exceptions.EmisoraNotFoundException"%>
 <%@page import="Business.Exceptions.DuplicateEmisoraException"%>
 <%@page import="Business.Exceptions.InvalidEmisoraException"%>
+<%@include file="/WEB-INF/jspf/auth.jspf"%>
 <%
     EmisoraService emisoraService = new EmisoraService();
     String action = request.getParameter("action");
 
     if (action == null) {
         action = "list";
+    }
+
+    // CONTROL DE ACCESO: toda acción de emisoras exige sesión iniciada (cualquier rol);
+    // las que crean, editan o eliminan datos solo para ADMIN y OPERADOR
+    boolean changesData = action.equals("showCreateForm") || action.equals("create")
+            || action.equals("update") || action.equals("delete") || action.equals("deletefl");
+    boolean hasAccess = changesData
+            ? checkAccess(request, response, session, "ADMIN", "OPERADOR")
+            : checkAccess(request, response, session);
+    if (!hasAccess) {
+        return;
     }
 
     switch (action) {
