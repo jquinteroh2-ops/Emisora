@@ -339,6 +339,10 @@ Navegador ──HTTPS──> Render (Docker: Tomcat 11 + ROOT.war) ──JDBC + 
    "C:\Program Files\MySQL\MySQL Server 9.7\bin\mysql.exe" --host=HOST --port=4000 --user=USUARIO --password --ssl-mode=REQUIRED < db\02_data.sql
    ```
 
+   Con el cliente de MySQL 9.x puede aparecer `Unknown column '$$' in 'field list'` al conectarse a TiDB:
+   es una consulta interna del cliente y se puede ignorar. Los scripts y toda la aplicación se probaron con
+   TiDB v8.5 en Docker.
+
 ### 2. Aplicación en Render
 
 1. Crear una cuenta en <https://render.com> entrando con GitHub.
