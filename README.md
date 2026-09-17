@@ -40,6 +40,7 @@ Emisora/
     ├── java/                             ← Source Packages
     │   ├── Domain/Model/                 Entidades (POJOs): User, Emisora
     │   ├── Infrastructure/Database/      Conexión JDBC: ConnectionDbMySql
+    │   ├── Infrastructure/Mail/          Envío de correos por SMTP: EmailSender
     │   ├── Infrastructure/Persistence/   Acceso a datos (CRUD con PreparedStatement)
     │   ├── Business/Exceptions/          Excepciones de negocio
     │   └── Business/Services/            Lógica de negocio (la usan los controladores)
@@ -171,6 +172,42 @@ Ejemplos (con sesión iniciada; resultados con los datos de prueba):
 Reglas extra: nadie puede **eliminar su propio usuario** ni **cambiar su propio rol**; si un usuario edita sus
 propios datos, la sesión se actualiza.
 
+## Recuperación de clave por correo
+
+Como las claves se guardan cifradas (SHA-256), no se pueden "recordar": se envía un **enlace de un solo uso**
+para crear una nueva. Todas las acciones son públicas en `UserController.jsp` (quien olvidó su clave no puede
+iniciar sesión):
+
+| Paso | action | Qué hace |
+|---|---|---|
+| 1 | `showForgotForm` → `sendResetLink` | `UserService.requestPasswordReset`: si el email existe, genera un código aleatorio de 64 caracteres (`SecureRandom`), guarda en `Users.resetToken` **su versión cifrada** con vencimiento de 30 minutos (`resetTokenExpires`) y envía el enlace con `Infrastructure.Mail.EmailSender` (JavaMail por SMTP). Siempre responde el mismo mensaje, exista o no el correo. |
+| 2 | `showResetForm&token=...` | `validateResetToken`: busca el código cifrado que no haya vencido y muestra `reset_password.jsp`. |
+| 3 | `resetPassword` | `resetPassword`: valida la clave nueva (mínimo 8 caracteres y confirmación), la guarda cifrada y **borra el código** para que el enlace no sirva otra vez. |
+
+El enlace del correo se arma con la variable `APP_BASE_URL`; si no existe (ejecución local), se usa la
+dirección de la petición (ej. `http://localhost:8080/emisora`).
+
+### Configurar el envío de correo con Brevo (gratis)
+
+Se usa SMTP de [Brevo](https://www.brevo.com) por el **puerto 2525**, porque el plan gratuito de Render bloquea
+los puertos SMTP 25, 465 y 587. Plan gratuito: 300 correos al día, sin tarjeta.
+
+1. Crear una cuenta en <https://www.brevo.com>. Brevo puede revisar la cuenta antes de permitir envíos.
+2. **Remitente**: en *Configuración → Remitentes, dominios e IP → Remitentes → Añadir un remitente*, poner el
+   nombre "Gestión de Emisoras" y el correo propio; verificarlo con el código de 6 dígitos que llega a ese correo.
+3. **Clave SMTP**: en *SMTP y API → SMTP*, generar una clave SMTP y copiar el **login SMTP** (suele tener la forma
+   `xxxxxx@smtp-brevo.com`) y la **clave**.
+4. Guardar las variables (una sola vez) y abrir una terminal nueva:
+
+   ```bat
+   setx MAIL_SMTP_USER "login-smtp@smtp-brevo.com"
+   setx MAIL_SMTP_PASSWORD "clave-smtp-de-brevo"
+   setx MAIL_FROM "correo-verificado-como-remitente"
+   ```
+
+> Al usar un remitente de un correo gratuito o institucional sin dominio autenticado, algunos mensajes pueden
+> llegar a **spam**. Los buzones públicos de [yopmail.com](https://yopmail.com) de los usuarios de prueba sí los reciben.
+
 ## Base de datos
 
 Scripts en la carpeta [`db/`](db/) (ejecutarlos en orden, por ejemplo desde MySQL Workbench con
@@ -238,6 +275,14 @@ de recuperación de clave.)
 | `DB_PASSWORD` | Si MySQL tiene clave | *(vacío)* | Contraseña del usuario de MySQL |
 | `DB_USER` | No | `root` | Usuario de MySQL |
 | `DB_URL` | No | `jdbc:mysql://localhost:3306/emisora_db?useSSL=false&allowPublicKeyRetrieval=true` | Dirección de la base de datos |
+| `MAIL_SMTP_USER` | Para recuperar la clave | `xxxxxx@smtp-brevo.com` | Login SMTP (ver [Brevo](#configurar-el-envío-de-correo-con-brevo-gratis)) |
+| `MAIL_SMTP_PASSWORD` | Para recuperar la clave | *(clave SMTP)* | Clave SMTP |
+| `MAIL_FROM` | Para recuperar la clave | `correo@verificado.com` | Remitente verificado en Brevo |
+| `MAIL_SMTP_HOST` | No | `smtp-relay.brevo.com` | Servidor SMTP |
+| `MAIL_SMTP_PORT` | No | `2525` | Puerto SMTP |
+| `MAIL_SMTP_STARTTLS` | No | `true` | Cifrar la conexión SMTP |
+| `MAIL_FROM_NAME` | No | `Gestión de Emisoras` | Nombre del remitente |
+| `APP_BASE_URL` | En Internet | `https://emisora.onrender.com` | Dirección pública usada en el enlace del correo |
 
 Para dejarlas guardadas en Windows (una sola vez; luego **abrir una terminal nueva**):
 
@@ -275,5 +320,5 @@ de abrir NetBeans.
 - [x] Controlador JSP y vistas de Emisora (`EmisoraController.jsp`, create, find_edit_delete, list_all)
 - [x] Login, sesión y control de acceso por rol
 - [x] Reportes parametrizados (2 por entidad)
-- [ ] Recuperación de clave por correo
+- [x] Recuperación de clave por correo (enlace de un solo uso, JavaMail + SMTP de Brevo)
 - [ ] Despliegue en Internet

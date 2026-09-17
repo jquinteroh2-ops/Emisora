@@ -24,6 +24,11 @@
         <p class="message error"><%= h(request.getAttribute("errorMessage")) %></p>
     <% } %>
 
+    <%-- Mensaje de éxito (ej. después de cambiar la contraseña con el enlace del correo) --%>
+    <% if (request.getAttribute("successMessage") != null) { %>
+        <p class="message success"><%= h(request.getAttribute("successMessage")) %></p>
+    <% } %>
+
     <%-- Formulario de Login --%>
     <form action="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=authenticate" method="post">
         <label for="email">Email:</label>
@@ -36,6 +41,9 @@
     </form>
 
     <p class="nav-links">
+        <a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=showForgotForm">¿Olvidaste tu contraseña?</a>
+    </p>
+    <p>
         <a href="<%= request.getContextPath() %>/index.jsp">Volver a la página de inicio</a>
     </p>
 </main>

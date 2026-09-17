@@ -24,6 +24,7 @@
 <%@page import="Business.Exceptions.UserNotFoundException"%>
 <%@page import="Business.Exceptions.DuplicateUserException"%>
 <%@page import="Business.Exceptions.InvalidUserException"%>
+<%@page import="jakarta.mail.MessagingException"%>
 <%@include file="/WEB-INF/jspf/auth.jspf"%>
 <%
     UserService userService = new UserService();
@@ -33,9 +34,11 @@
         action = "list";
     }
 
-    // CONTROL DE ACCESO: login, authenticate y logout son públicas;
-    // todo lo demás (gestión de usuarios) exige sesión iniciada con rol ADMIN
-    boolean publicAction = action.equals("login") || action.equals("authenticate") || action.equals("logout");
+    // CONTROL DE ACCESO: login, authenticate, logout y la recuperación de clave son públicas
+    // (quien olvidó su clave no puede iniciar sesión); todo lo demás exige rol ADMIN
+    boolean publicAction = action.equals("login") || action.equals("authenticate") || action.equals("logout")
+            || action.equals("showForgotForm") || action.equals("sendResetLink")
+            || action.equals("showResetForm") || action.equals("resetPassword");
     if (!publicAction && !checkAccess(request, response, session, "ADMIN")) {
         return;
     }
@@ -80,6 +83,18 @@
         case "logout":
             handleLogout(request, response, session);
             break;
+        case "showForgotForm":
+            showForgotPasswordForm(request, response);
+            break;
+        case "sendResetLink":
+            handleSendResetLink(request, response, userService);
+            break;
+        case "showResetForm":
+            showResetPasswordForm(request, response, userService);
+            break;
+        case "resetPassword":
+            handleResetPassword(request, response, userService);
+            break;
         default:
             response.sendRedirect(request.getContextPath() + "/index.jsp");
             break;
@@ -93,6 +108,8 @@
     private static final String LIST_ALL_VIEW = "/Views/Forms/Users/list_all.jsp";
     private static final String REPORT_ROL_VIEW = "/Views/Forms/Users/report_rol.jsp";
     private static final String REPORT_FECHAS_VIEW = "/Views/Forms/Users/report_fechas.jsp";
+    private static final String FORGOT_PASSWORD_VIEW = "/Views/Forms/Users/forgot_password.jsp";
+    private static final String RESET_PASSWORD_VIEW = "/Views/Forms/Users/reset_password.jsp";
 
     // Indica si el código corresponde al usuario que inició sesión
     private boolean isLoggedInUser(HttpSession session, String code) {
@@ -359,6 +376,93 @@
         } catch (SQLException e) {
             request.setAttribute("errorMessage", "Error de base de datos al generar el reporte.");
             request.getRequestDispatcher(REPORT_FECHAS_VIEW).forward(request, response);
+        }
+    }
+
+    // Dirección base de la aplicación, para armar el enlace que va en el correo.
+    // En Internet se toma de la variable APP_BASE_URL (ej. https://emisora.onrender.com);
+    // en local se arma con los datos de la petición (ej. http://localhost:8080/emisora).
+    private String getAppBaseUrl(HttpServletRequest request) {
+        String configuredUrl = System.getenv("APP_BASE_URL");
+        if (configuredUrl != null && !configuredUrl.isBlank()) {
+            return configuredUrl.trim().replaceAll("/+$", "");
+        }
+        int port = request.getServerPort();
+        String portText = (port == 80 || port == 443) ? "" : ":" + port;
+        return request.getScheme() + "://" + request.getServerName() + portText + request.getContextPath();
+    }
+
+    // Mostrar el formulario "¿Olvidaste tu contraseña?"
+    private void showForgotPasswordForm(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+    }
+
+    // RECUPERACIÓN PASO 1: generar el código y enviar el enlace al correo
+    private void handleSendResetLink(HttpServletRequest request, HttpServletResponse response, UserService userService)
+            throws ServletException, IOException {
+        String email = request.getParameter("email");
+        String resetLinkPrefix = getAppBaseUrl(request) + "/Controllers/UserController.jsp?action=showResetForm&token=";
+
+        try {
+            userService.requestPasswordReset(email, resetLinkPrefix);
+            // Mismo mensaje exista o no el correo: no se revela qué correos están registrados
+            request.setAttribute("successMessage", "Si el correo está registrado, recibirá un enlace para crear una nueva "
+                    + "contraseña (vence en " + UserService.RESET_TOKEN_MINUTES + " minutos). Revise también la carpeta de spam.");
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        } catch (InvalidUserException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos. Inténtelo de nuevo.");
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        } catch (MessagingException e) {
+            request.setAttribute("errorMessage", "No se pudo enviar el correo en este momento. Inténtelo más tarde.");
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        }
+    }
+
+    // RECUPERACIÓN PASO 2: el usuario abre el enlace del correo; si el código es válido, se muestra el formulario
+    private void showResetPasswordForm(HttpServletRequest request, HttpServletResponse response, UserService userService)
+            throws ServletException, IOException {
+        String token = request.getParameter("token");
+
+        try {
+            User resetUser = userService.validateResetToken(token);
+            request.setAttribute("token", token);
+            request.setAttribute("resetUser", resetUser);
+            request.getRequestDispatcher(RESET_PASSWORD_VIEW).forward(request, response);
+        } catch (UserNotFoundException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos. Inténtelo de nuevo.");
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        }
+    }
+
+    // RECUPERACIÓN PASO 3: guardar la nueva contraseña
+    private void handleResetPassword(HttpServletRequest request, HttpServletResponse response, UserService userService)
+            throws ServletException, IOException {
+        String token = request.getParameter("token");
+        String password = request.getParameter("password");
+        String confirmPassword = request.getParameter("confirmPassword");
+
+        try {
+            userService.resetPassword(token, password, confirmPassword);
+            request.setAttribute("successMessage", "Contraseña actualizada. Ya puede iniciar sesión con su nueva contraseña.");
+            request.getRequestDispatcher(LOGIN_VIEW).forward(request, response);
+        } catch (UserNotFoundException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(FORGOT_PASSWORD_VIEW).forward(request, response);
+        } catch (InvalidUserException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.setAttribute("token", token);  // Para que pueda intentarlo de nuevo con el mismo enlace
+            request.getRequestDispatcher(RESET_PASSWORD_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos. Inténtelo de nuevo.");
+            request.setAttribute("token", token);
+            request.getRequestDispatcher(RESET_PASSWORD_VIEW).forward(request, response);
         }
     }
 
