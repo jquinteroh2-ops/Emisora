@@ -54,6 +54,58 @@ Emisora/
         └── WEB-INF/web.xml
 ```
 
+## Arquitectura: el JSP como controlador
+
+No existen clases `HttpServlet`. Cada entidad tiene un **controlador JSP** (`Controllers/UserController.jsp`)
+que recibe todas las peticiones con un parámetro `action`:
+
+```
+Navegador ──> /Controllers/UserController.jsp?action=create
+                 │  scriptlet <% %>: lee "action" y hace switch (action)
+                 ▼
+              handleCreateUser(...)          método privado declarado con <%! %>
+                 │
+                 ▼
+              UserService.createUser(...)    Business: valida y cifra la clave
+                 │
+                 ▼
+              UserCRUD.addUser(user)         Infrastructure: INSERT con PreparedStatement
+                 │
+                 ▼
+              MySQL (tabla Users)
+                 │  (si hay error: DuplicateUserException / InvalidUserException)
+                 ▼
+              request.setAttribute("successMessage" | "errorMessage", ...)
+              forward ──> /Views/Forms/Users/list_all.jsp  (o create.jsp si hubo error)
+```
+
+- **¿Por qué funciona sin Servlet?** Tomcat traduce cada JSP a una clase Java que hereda de `HttpJspBase`.
+  El código del scriptlet queda dentro del método `_jspService(request, response)` (el equivalente al
+  `service()` de un Servlet) y los métodos `<%! %>` quedan como métodos de esa clase. Se puede ver en
+  `CATALINA_HOME/work/Catalina/localhost/emisora/org/apache/jsp/Controllers/UserController_jsp.java`.
+- **Vistas (`Views/Forms`)**: solo muestran datos. Reciben `errorMessage`, `successMessage` y listas
+  (`users`) por `request`, y el registro buscado (`searchedUser`) o el usuario logueado (`loggedInUser`)
+  por `session`.
+- **`forward` vs `sendRedirect`**: `forward` conserva el `request` (y sus mensajes) dentro del servidor;
+  `sendRedirect` le pide al navegador que haga una nueva petición (se usa para abrir formularios vacíos,
+  al iniciar y al cerrar sesión).
+
+### Acciones de `UserController.jsp`
+
+| action | Método | Resultado |
+|---|---|---|
+| `login` | `handleLogin` | Cierra la sesión y redirige a `login.jsp` |
+| `authenticate` | `handleAuthenticate` | Valida email y clave; guarda `loggedInUser` en la sesión |
+| `showCreateForm` | `showCreateUserForm` | Redirige a `create.jsp` |
+| `create` | `handleCreateUser` | Crea el usuario y muestra la lista |
+| `showFindForm` | `showFindForm` | Abre `find_edit_delete.jsp` vacío |
+| `search` | `handleSearch` | Busca por código y guarda `searchedUser` en la sesión |
+| `update` | `handleUpdateUser` | Actualiza el usuario buscado |
+| `delete` | `handleDeleteUser` | Elimina el usuario buscado |
+| `deletefl` | `handleDeleteUserFromList` | Elimina desde el enlace de la lista |
+| `listAll` | `handleListAllUsers` | Lista todos (o filtra con `q`) |
+| `logout` | `handleLogout` | Cierra la sesión |
+
 ## Base de datos
 
 Scripts en la carpeta [`db/`](db/) (ejecutarlos en orden, por ejemplo desde MySQL Workbench con
@@ -103,13 +155,57 @@ Toda emisora debe transmitir al menos en FM o en AM.
 (Los buzones `@yopmail.com` son públicos: se pueden abrir en <https://yopmail.com> para ver el correo
 de recuperación de clave.)
 
+## Ejecutar localmente (Windows)
+
+### 1. Requisitos
+
+- **JDK 21** (por ejemplo [Eclipse Temurin 21](https://adoptium.net/)).
+- **Maven 3.9+** (`mvn -v` debe funcionar en la terminal).
+- **MySQL 8.0+** con los scripts de [`db/`](db/) ya ejecutados.
+- **Apache Tomcat 11**: descargar el *Windows zip* desde <https://tomcat.apache.org/download-11.cgi> y
+  descomprimirlo (no necesita instalación). Ejemplo: `C:\Users\joseq\Tomcat\apache-tomcat-11.0.26`.
+
+### 2. Variables de entorno
+
+| Variable | Obligatoria | Ejemplo / valor por defecto | Para qué sirve |
+|---|---|---|---|
+| `CATALINA_HOME` | Sí (solo para `run-local.bat`) | `C:\Users\joseq\Tomcat\apache-tomcat-11.0.26` | Carpeta de Tomcat 11 |
+| `DB_PASSWORD` | Si MySQL tiene clave | *(vacío)* | Contraseña del usuario de MySQL |
+| `DB_USER` | No | `root` | Usuario de MySQL |
+| `DB_URL` | No | `jdbc:mysql://localhost:3306/emisora_db?useSSL=false&allowPublicKeyRetrieval=true` | Dirección de la base de datos |
+
+Para dejarlas guardadas en Windows (una sola vez; luego **abrir una terminal nueva**):
+
+```bat
+setx CATALINA_HOME "C:\Users\joseq\Tomcat\apache-tomcat-11.0.26"
+setx DB_PASSWORD "la-clave-de-root-de-mysql"
+```
+
+> La contraseña de MySQL **nunca** se escribe en el código: `ConnectionDbMySql` la lee de `DB_PASSWORD`.
+
+### 3. Ejecutar
+
+Desde la carpeta del proyecto:
+
+```bat
+scripts\run-local.bat
+```
+
+El script compila con Maven, copia `target\emisora.war` a Tomcat y lo inicia en la misma ventana.
+Abrir <http://localhost:8080/emisora/> e iniciar sesión con un [usuario de prueba](#usuarios-de-prueba).
+Para detener Tomcat: `Ctrl + C`.
+
+**Alternativa con NetBeans:** *File → Open Project* sobre esta carpeta (se abre como proyecto Maven),
+agregar Tomcat 11 en *Tools → Servers* y ejecutar con *Run*. Las variables de entorno deben existir antes
+de abrir NetBeans.
+
 ## Estado del desarrollo
 
 - [x] Configuración inicial del proyecto (Maven WAR, Tomcat 11, estructura de la guía)
 - [x] Base de datos: script de creación y datos iniciales
 - [x] Modelo de dominio y conexión a MySQL
 - [x] Persistencia y servicio de Usuario (excepciones, `UserCRUD`, `UserService`)
-- [ ] Controlador JSP y vistas de Usuario
+- [x] Controlador JSP y vistas de Usuario (`UserController.jsp`, login, create, find_edit_delete, list_all)
 - [ ] CRUD de Emisora
 - [ ] Login, sesión y control de acceso
 - [ ] Reportes parametrizados (2 por entidad)
