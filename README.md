@@ -196,8 +196,16 @@ dirección de la petición (ej. `http://localhost:8080/emisora`).
 
 ### Configurar el envío de correo con Brevo (gratis)
 
-Se usa SMTP de [Brevo](https://www.brevo.com) por el **puerto 2525**, porque el plan gratuito de Render bloquea
-los puertos SMTP 25, 465 y 587. Plan gratuito: 300 correos al día, sin tarjeta.
+`Infrastructure.Mail.EmailSender` puede enviar de dos maneras, según las variables de entorno:
+
+| Forma | Cuándo se usa | Variables |
+|---|---|---|
+| **API de Brevo (HTTPS)** | Si existe `BREVO_API_KEY` | `BREVO_API_KEY`, `MAIL_FROM` |
+| **SMTP con JavaMail** | Si no hay `BREVO_API_KEY` | `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_FROM` (servidor y puerto por defecto: `smtp-relay.brevo.com:2525`) |
+
+Se usa el puerto **2525** para SMTP porque el plan gratuito de Render bloquea los puertos 25, 465 y 587.
+La API va por HTTPS (puerto 443), que ningún hospedaje bloquea. Plan gratuito de Brevo: 300 correos al día,
+sin tarjeta.
 
 1. Crear una cuenta en <https://www.brevo.com>. Brevo puede revisar la cuenta antes de permitir envíos.
 2. **Remitente**: en *Configuración → Remitentes, dominios e IP → Remitentes → Añadir un remitente*, poner el
@@ -282,7 +290,8 @@ de recuperación de clave.)
 | `DB_PASSWORD` | Si MySQL tiene clave | *(vacío)* | Contraseña del usuario de MySQL |
 | `DB_USER` | No | `root` | Usuario de MySQL |
 | `DB_URL` | No | `jdbc:mysql://localhost:3306/emisora_db?useSSL=false&allowPublicKeyRetrieval=true` | Dirección de la base de datos |
-| `MAIL_SMTP_USER` | Para recuperar la clave | `xxxxxx@smtp-brevo.com` | Login SMTP (ver [Brevo](#configurar-el-envío-de-correo-con-brevo-gratis)) |
+| `BREVO_API_KEY` | Una de las dos formas | `xkeysib-...` | Clave API de Brevo (envío por HTTPS) |
+| `MAIL_SMTP_USER` | Una de las dos formas | `xxxxxx@smtp-brevo.com` | Login SMTP (ver [Brevo](#configurar-el-envío-de-correo-con-brevo-gratis)) |
 | `MAIL_SMTP_PASSWORD` | Para recuperar la clave | *(clave SMTP)* | Clave SMTP |
 | `MAIL_FROM` | Para recuperar la clave | `correo@verificado.com` | Remitente verificado en Brevo |
 | `MAIL_SMTP_HOST` | No | `smtp-relay.brevo.com` | Servidor SMTP |

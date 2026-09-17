@@ -12,16 +12,23 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Properties;
 
 /**
- * Envío de correos por SMTP con JavaMail (Jakarta Mail). Es infraestructura, igual que
- * ConnectionDbMySql: sabe CÓMO enviar un correo, pero no decide QUÉ ni CUÁNDO enviarlo
- * (eso lo decide UserService).
+ * Envío de correos. Es infraestructura, igual que ConnectionDbMySql: sabe CÓMO enviar un
+ * correo, pero no decide QUÉ ni CUÁNDO enviarlo (eso lo decide UserService).
  *
- * Los datos del servidor SMTP se leen de variables de entorno (ver README), así la clave
- * SMTP no se sube a GitHub. Por defecto usa Brevo por el puerto 2525, que no está
- * bloqueado en el plan gratuito de Render.
+ * Tiene dos formas de enviar, según las variables de entorno (ver README):
+ *   1. Si existe BREVO_API_KEY: por la API de Brevo (HTTPS, puerto 443) con el cliente
+ *      HTTP que ya trae Java. Útil porque algunos hospedajes bloquean los puertos SMTP.
+ *   2. Si no: por SMTP con JavaMail (Jakarta Mail), usando MAIL_SMTP_*.
+ * Las claves nunca están en el código: se leen de variables de entorno.
  *
  * @author José Quintero
  */
@@ -36,11 +43,20 @@ public class EmailSender {
     // STARTTLS cifra la conexión con el servidor SMTP (Brevo y Gmail lo exigen)
     private static final boolean STARTTLS = !"false".equalsIgnoreCase(getEnv("MAIL_SMTP_STARTTLS", "true"));
 
+    // Clave de la API de Brevo. Si está definida, el correo se envía por HTTPS en vez de SMTP
+    private static final String BREVO_API_KEY = getEnv("BREVO_API_KEY", "");
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+
     // Método que envía un correo con versión en texto plano y versión HTML
     public static void sendEmail(String to, String subject, String textBody, String htmlBody)
             throws MessagingException {
         if (FROM.isBlank()) {
             throw new MessagingException("Error: el envío de correo no está configurado (falta MAIL_FROM).");
+        }
+
+        if (!BREVO_API_KEY.isBlank()) {
+            sendWithBrevoApi(to, subject, textBody, htmlBody);
+            return;
         }
 
         Properties props = new Properties();
@@ -89,6 +105,67 @@ public class EmailSender {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    // Envía el correo por la API de Brevo (HTTPS). Se arma el JSON a mano con el cliente
+    // HTTP incluido en Java, sin librerías externas.
+    private static void sendWithBrevoApi(String to, String subject, String textBody, String htmlBody)
+            throws MessagingException {
+        String json = "{"
+                + "\"sender\":{\"name\":\"" + jsonEscape(FROM_NAME) + "\",\"email\":\"" + jsonEscape(FROM) + "\"},"
+                + "\"to\":[{\"email\":\"" + jsonEscape(to) + "\"}],"
+                + "\"subject\":\"" + jsonEscape(subject) + "\","
+                + "\"textContent\":\"" + jsonEscape(textBody) + "\","
+                + "\"htmlContent\":\"" + jsonEscape(htmlBody) + "\""
+                + "}";
+
+        try {
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_API_URL))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("api-key", BREVO_API_KEY)
+                    .header("content-type", "application/json")
+                    .header("accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            // 201 = aceptado para envío
+            if (response.statusCode() != 201 && response.statusCode() != 200) {
+                throw new MessagingException("Error: la API de correo respondió " + response.statusCode()
+                        + " " + response.body());
+            }
+        } catch (MessagingException e) {
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new MessagingException("Error: no se pudo contactar con el servicio de correo.", e);
+        }
+    }
+
+    // Escapa el texto que se inserta dentro del JSON (comillas, barras y saltos de línea)
+    private static String jsonEscape(String value) {
+        StringBuilder result = new StringBuilder();
+        for (char c : value.toCharArray()) {
+            switch (c) {
+                case '"' -> result.append("\\\"");
+                case '\\' -> result.append("\\\\");
+                case '\n' -> result.append("\\n");
+                case '\r' -> result.append("\\r");
+                case '\t' -> result.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        result.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        result.append(c);
+                    }
+                }
+            }
+        }
+        return result.toString();
     }
 
     // Lee una variable de entorno; si no está definida, devuelve el valor por defecto

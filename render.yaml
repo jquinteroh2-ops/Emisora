@@ -19,7 +19,9 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      # Correo (Brevo, puerto 2525)
+      # Correo (Brevo). Con BREVO_API_KEY se envía por HTTPS; si no, por SMTP (puerto 2525)
+      - key: BREVO_API_KEY
+        sync: false
       - key: MAIL_SMTP_USER
         sync: false
       - key: MAIL_SMTP_PASSWORD
