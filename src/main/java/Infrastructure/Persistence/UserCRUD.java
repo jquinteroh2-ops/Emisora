@@ -169,6 +169,66 @@ public class UserCRUD {
     }
 
     // ---------------------------------------------------------------------
+    // RECUPERACIÓN DE CLAVE
+    // ---------------------------------------------------------------------
+
+    // Guarda el código de recuperación (ya cifrado) y su fecha de vencimiento
+    public void saveResetToken(String code, String resetTokenHash, LocalDateTime expires)
+            throws SQLException, UserNotFoundException {
+        String query = "UPDATE Users SET resetToken=?, resetTokenExpires=? WHERE code=?";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setString(1, resetTokenHash);
+            stmt.setObject(2, expires);
+            stmt.setString(3, code);
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new UserNotFoundException("El usuario con el código " + code + " no existe.");
+            }
+        }
+    }
+
+    // Busca el usuario dueño de un código de recuperación que todavía no ha vencido
+    public User getUserByValidResetToken(String resetTokenHash, LocalDateTime now)
+            throws SQLException, UserNotFoundException {
+        String query = "SELECT * FROM Users WHERE resetToken=? AND resetTokenExpires > ?";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setString(1, resetTokenHash);
+            stmt.setObject(2, now);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapUser(rs);
+                }
+            }
+        }
+        throw new UserNotFoundException("El enlace de recuperación no es válido o ya venció. Solicite uno nuevo.");
+    }
+
+    // Cambia la clave y borra el código de recuperación para que no se pueda usar otra vez
+    public void updatePasswordAndClearToken(String code, String passwordHash)
+            throws SQLException, UserNotFoundException {
+        String query = "UPDATE Users SET password=?, resetToken=NULL, resetTokenExpires=NULL WHERE code=?";
+
+        try (Connection con = ConnectionDbMySql.getConnection();
+             PreparedStatement stmt = con.prepareStatement(query)) {
+
+            stmt.setString(1, passwordHash);
+            stmt.setString(2, code);
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new UserNotFoundException("El usuario con el código " + code + " no existe.");
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // REPORTES PARAMETRIZADOS
     // ---------------------------------------------------------------------
 
