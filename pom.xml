@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Proyecto Emisora (Ejercicio 25) - Desarrollo Web, Unidad 1
+    CRUD con JSP SIN Servlet: los controladores son archivos .jsp (carpeta Controllers).
+
+    Maven solo se usa para compilar y empaquetar el .war (y descargar el driver de MySQL).
+    No se usa ningún framework: solo JSP + JDBC.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>co.edu.unicartagena.desarrolloweb</groupId>
+    <artifactId>Emisora</artifactId>
+    <version>1.0</version>
+    <packaging>war</packaging>
+
+    <name>Emisora - CRUD JSP sin Servlet</name>
+
+    <properties>
+        <!-- Igual que la guía: JDK 21 + Tomcat 11 (Jakarta EE 11 Web) -->
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- API de Jakarta EE 11 Web (JSP, HttpServletRequest, HttpSession...).
+             "provided": Tomcat ya la trae, no se copia dentro del .war -->
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-web-api</artifactId>
+            <version>11.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Driver JDBC de MySQL (en la guía se agrega el .jar a mano en Libraries) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>9.7.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Genera target/emisora.war -->
+        <finalName>emisora</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.5.1</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
