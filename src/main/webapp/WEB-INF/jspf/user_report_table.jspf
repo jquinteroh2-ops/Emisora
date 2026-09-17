@@ -1,0 +1,39 @@
+<%--
+    Fragmento: user_report_table.jspf
+    Author   : José Quintero
+    Tabla de resultados de los reportes de usuarios (reporte 3 y reporte 4).
+    La vista que lo incluye debe tener la variable "users" (List<User>) con datos.
+--%>
+<p class="summary">
+    <strong><%= users.size() %></strong> usuario(s) encontrado(s)
+</p>
+
+<% if (users.isEmpty()) { %>
+    <p>No hay usuarios que cumplan los criterios del reporte.</p>
+<% } else { %>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Registrado</th>
+            </tr>
+        </thead>
+        <tbody>
+        <% java.time.format.DateTimeFormatter formatoFecha = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); %>
+        <% for (User fila : users) { %>
+            <tr>
+                <td><%= h(fila.getCode()) %></td>
+                <td><%= h(fila.getName()) %></td>
+                <td><%= h(fila.getEmail()) %></td>
+                <td><%= h(fila.getRole()) %></td>
+                <td><%= fila.getCreatedAt() != null ? fila.getCreatedAt().format(formatoFecha) : "" %></td>
+            </tr>
+        <% } %>
+        </tbody>
+    </table>
+    </div>
+<% } %>

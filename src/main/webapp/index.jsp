@@ -49,6 +49,11 @@
             <% } %>
             <li><a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=listAll">Listar Todas las Emisoras</a></li>
         </ul>
+        <h3>Reportes de Emisoras</h3>
+        <ul class="menu">
+            <li><a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=reportPaisGenero">Emisoras por país y género</a></li>
+            <li><a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=reportCobertura">Emisoras por cobertura (ciudades y locutores)</a></li>
+        </ul>
 
         <%-- La gestión de usuarios solo se muestra al ADMIN --%>
         <% if (role.equals("ADMIN")) { %>
@@ -57,6 +62,11 @@
                 <li><a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=showCreateForm">Agregar Usuario</a></li>
                 <li><a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=showFindForm">Buscar Usuario</a></li>
                 <li><a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=listAll">Listar Todos los Usuarios</a></li>
+            </ul>
+            <h3>Reportes de Usuarios</h3>
+            <ul class="menu">
+                <li><a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=reportRol">Usuarios por rol</a></li>
+                <li><a href="<%= request.getContextPath() %>/Controllers/UserController.jsp?action=reportFechas">Usuarios por fecha de registro</a></li>
             </ul>
         <% } %>
 

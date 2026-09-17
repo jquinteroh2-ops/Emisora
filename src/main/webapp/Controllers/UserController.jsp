@@ -71,6 +71,12 @@
         case "listAll":
             handleListAllUsers(request, response, userService);
             break;
+        case "reportRol":
+            handleReportRol(request, response, userService);
+            break;
+        case "reportFechas":
+            handleReportFechas(request, response, userService);
+            break;
         case "logout":
             handleLogout(request, response, session);
             break;
@@ -85,6 +91,8 @@
     private static final String CREATE_VIEW = "/Views/Forms/Users/create.jsp";
     private static final String FIND_EDIT_DELETE_VIEW = "/Views/Forms/Users/find_edit_delete.jsp";
     private static final String LIST_ALL_VIEW = "/Views/Forms/Users/list_all.jsp";
+    private static final String REPORT_ROL_VIEW = "/Views/Forms/Users/report_rol.jsp";
+    private static final String REPORT_FECHAS_VIEW = "/Views/Forms/Users/report_fechas.jsp";
 
     // Indica si el código corresponde al usuario que inició sesión
     private boolean isLoggedInUser(HttpSession session, String code) {
@@ -304,6 +312,53 @@
         } catch (SQLException e) {
             request.setAttribute("errorMessage", "Error de base de datos al listar usuarios.");
             request.getRequestDispatcher(LIST_ALL_VIEW).forward(request, response);
+        }
+    }
+
+    // REPORTE 3: usuarios que tienen un rol.
+    // Sin el parámetro "role" solo muestra el formulario; con él, genera el reporte.
+    private void handleReportRol(HttpServletRequest request, HttpServletResponse response, UserService userService)
+            throws ServletException, IOException {
+        String role = request.getParameter("role");
+
+        if (role == null) {
+            request.getRequestDispatcher(REPORT_ROL_VIEW).forward(request, response);
+            return;
+        }
+
+        try {
+            request.setAttribute("users", userService.reportByRole(role));
+            request.getRequestDispatcher(REPORT_ROL_VIEW).forward(request, response);
+        } catch (InvalidUserException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(REPORT_ROL_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos al generar el reporte.");
+            request.getRequestDispatcher(REPORT_ROL_VIEW).forward(request, response);
+        }
+    }
+
+    // REPORTE 4: usuarios registrados entre dos fechas (ambas incluidas).
+    // Sin parámetros solo muestra el formulario; con ellos, genera el reporte.
+    private void handleReportFechas(HttpServletRequest request, HttpServletResponse response, UserService userService)
+            throws ServletException, IOException {
+        String fromDate = request.getParameter("fromDate");
+        String toDate = request.getParameter("toDate");
+
+        if (fromDate == null && toDate == null) {
+            request.getRequestDispatcher(REPORT_FECHAS_VIEW).forward(request, response);
+            return;
+        }
+
+        try {
+            request.setAttribute("users", userService.reportByCreatedAtRange(fromDate, toDate));
+            request.getRequestDispatcher(REPORT_FECHAS_VIEW).forward(request, response);
+        } catch (InvalidUserException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(REPORT_FECHAS_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos al generar el reporte.");
+            request.getRequestDispatcher(REPORT_FECHAS_VIEW).forward(request, response);
         }
     }
 

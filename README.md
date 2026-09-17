@@ -104,6 +104,8 @@ Navegador ──> /Controllers/UserController.jsp?action=create
 | `delete` | `handleDeleteUser` | Elimina el usuario buscado |
 | `deletefl` | `handleDeleteUserFromList` | Elimina desde el enlace de la lista |
 | `listAll` | `handleListAllUsers` | Lista todos (o filtra con `q`) |
+| `reportRol` | `handleReportRol` | Reporte 3: usuarios por rol |
+| `reportFechas` | `handleReportFechas` | Reporte 4: usuarios registrados entre dos fechas |
 | `logout` | `handleLogout` | Cierra la sesión |
 
 ### Acciones de `EmisoraController.jsp`
@@ -120,6 +122,29 @@ Mismo patrón. El inicio y cierre de sesión solo los atiende `UserController.js
 | `delete` | `handleDeleteEmisora` | Elimina la emisora buscada |
 | `deletefl` | `handleDeleteEmisoraFromList` | Elimina desde el enlace de la lista |
 | `listAll` | `handleListAllEmisoras` | Lista todas (o filtra con `q`) |
+| `reportPaisGenero` | `handleReportPaisGenero` | Reporte 1: emisoras por país y género |
+| `reportCobertura` | `handleReportCobertura` | Reporte 2: emisoras por cobertura |
+
+## Reportes parametrizados
+
+Cada reporte sigue el mismo recorrido por capas: formulario de parámetros (GET) → acción del controlador JSP
+→ método `report...` del Service (valida los parámetros) → método del CRUD (`SELECT` con `WHERE` y
+`PreparedStatement`) → la misma vista muestra el resultado con un resumen. Sin parámetros, la acción solo
+muestra el formulario.
+
+| # | Reporte | Parámetros | Consulta SQL | Quién |
+|---|---|---|---|---|
+| 1 | Emisoras por país y género | país (desplegable con los países registrados) y género (opcional) | `WHERE pais = ? [AND genero = ?]` | Todos los roles |
+| 2 | Emisoras por cobertura | mínimo y máximo de ciudades, mínimo de locutores | `WHERE numCiudades BETWEEN ? AND ? AND numLocutores >= ? ORDER BY numCiudades DESC` | Todos los roles |
+| 3 | Usuarios por rol | rol | `WHERE role = ?` | ADMIN |
+| 4 | Usuarios por fecha de registro | fecha desde y hasta (ambas incluidas) | `WHERE createdAt >= ? AND createdAt < ?` (hasta + 1 día) | ADMIN |
+
+Ejemplos (con sesión iniciada; resultados con los datos de prueba):
+
+- `.../Controllers/EmisoraController.jsp?action=reportPaisGenero&pais=Colombia&genero=Noticias` → EM002 y EM004
+- `.../Controllers/EmisoraController.jsp?action=reportCobertura&minCiudades=10&maxCiudades=50&minLocutores=10` → 5 emisoras
+- `.../Controllers/UserController.jsp?action=reportRol&role=OPERADOR` → 2 usuarios
+- `.../Controllers/UserController.jsp?action=reportFechas&fromDate=2026-08-01&toDate=2026-08-31` → 3 usuarios
 
 ## Sesión, login y control de acceso
 
@@ -249,6 +274,6 @@ de abrir NetBeans.
 - [x] Persistencia y servicio de Emisora (excepciones, `EmisoraCRUD`, `EmisoraService`)
 - [x] Controlador JSP y vistas de Emisora (`EmisoraController.jsp`, create, find_edit_delete, list_all)
 - [x] Login, sesión y control de acceso por rol
-- [ ] Reportes parametrizados (2 por entidad)
+- [x] Reportes parametrizados (2 por entidad)
 - [ ] Recuperación de clave por correo
 - [ ] Despliegue en Internet

@@ -195,6 +195,32 @@ tr:nth-child(even) td {
     margin-bottom: 0;
 }
 
+/* Reportes: parámetros en una sola fila y resumen de resultados */
+.report-description {
+    color: var(--muted);
+}
+
+.report-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: flex-end;
+    margin-bottom: 16px;
+}
+
+.report-form .field input,
+.report-form .field select {
+    width: auto;
+    min-width: 170px;
+    margin-bottom: 0;
+}
+
+.summary {
+    background: var(--background);
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
 /* Menú de la página de inicio */
 .menu {
     list-style: none;

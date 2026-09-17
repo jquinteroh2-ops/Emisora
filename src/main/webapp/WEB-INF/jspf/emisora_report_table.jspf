@@ -1,0 +1,62 @@
+<%--
+    Fragmento: emisora_report_table.jspf
+    Author   : José Quintero
+    Tabla de resultados de los reportes de emisoras (reporte 1 y reporte 2).
+    La vista que lo incluye debe tener la variable "emisoras" (List<Emisora>) con datos.
+--%>
+<%
+    // Resumen del reporte: totales calculados sobre las filas encontradas
+    int totalLocutores = 0;
+    int totalProgramas = 0;
+    for (Emisora fila : emisoras) {
+        totalLocutores += fila.getNumLocutores();
+        totalProgramas += fila.getNumProgramas();
+    }
+%>
+<p class="summary">
+    <strong><%= emisoras.size() %></strong> emisora(s) encontrada(s) ·
+    <strong><%= totalLocutores %></strong> locutores ·
+    <strong><%= totalProgramas %></strong> programas
+</p>
+
+<% if (emisoras.isEmpty()) { %>
+    <p>No hay emisoras que cumplan los criterios del reporte.</p>
+<% } else { %>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Canal</th>
+                <th>Frecuencias</th>
+                <th>Género</th>
+                <th>País</th>
+                <th>Locutores</th>
+                <th>Programas</th>
+                <th>Ciudades</th>
+                <th>Patrocinador</th>
+            </tr>
+        </thead>
+        <tbody>
+        <% for (Emisora fila : emisoras) { %>
+            <tr>
+                <td><%= h(fila.getCode()) %></td>
+                <td><%= h(fila.getNombre()) %></td>
+                <td><%= h(fila.getCanal()) %></td>
+                <td>
+                    <% if (fila.getBandaFm() != null) { %><%= fila.getBandaFm() %> FM<br><% } %>
+                    <% if (fila.getBandaAm() != null) { %><%= fila.getBandaAm() %> AM<% } %>
+                </td>
+                <td><%= h(fila.getGenero()) %></td>
+                <td><%= h(fila.getPais()) %></td>
+                <td><%= fila.getNumLocutores() %></td>
+                <td><%= fila.getNumProgramas() %></td>
+                <td><%= fila.getNumCiudades() %></td>
+                <td><%= h(fila.getPatrocinador()) %></td>
+            </tr>
+        <% } %>
+        </tbody>
+    </table>
+    </div>
+<% } %>

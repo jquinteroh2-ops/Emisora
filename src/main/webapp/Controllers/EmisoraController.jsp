@@ -69,6 +69,12 @@
         case "listAll":
             handleListAllEmisoras(request, response, emisoraService);
             break;
+        case "reportPaisGenero":
+            handleReportPaisGenero(request, response, emisoraService);
+            break;
+        case "reportCobertura":
+            handleReportCobertura(request, response, emisoraService);
+            break;
         default:
             response.sendRedirect(request.getContextPath() + "/index.jsp");
             break;
@@ -79,6 +85,8 @@
     private static final String CREATE_VIEW = "/Views/Forms/Emisoras/create.jsp";
     private static final String FIND_EDIT_DELETE_VIEW = "/Views/Forms/Emisoras/find_edit_delete.jsp";
     private static final String LIST_ALL_VIEW = "/Views/Forms/Emisoras/list_all.jsp";
+    private static final String REPORT_PAIS_GENERO_VIEW = "/Views/Forms/Emisoras/report_pais_genero.jsp";
+    private static final String REPORT_COBERTURA_VIEW = "/Views/Forms/Emisoras/report_cobertura.jsp";
 
     // Lee los campos del formulario y los convierte en un objeto Emisora (EmisoraService.buildEmisora)
     private Emisora readEmisoraForm(HttpServletRequest request, EmisoraService emisoraService, String code)
@@ -251,6 +259,56 @@
         } catch (SQLException e) {
             request.setAttribute("errorMessage", "Error de base de datos al listar emisoras.");
             request.getRequestDispatcher(LIST_ALL_VIEW).forward(request, response);
+        }
+    }
+
+    // REPORTE 1: emisoras de un país, filtradas opcionalmente por género.
+    // Sin el parámetro "pais" solo muestra el formulario; con él, genera el reporte.
+    private void handleReportPaisGenero(HttpServletRequest request, HttpServletResponse response, EmisoraService emisoraService)
+            throws ServletException, IOException {
+        String pais = request.getParameter("pais");
+        String genero = request.getParameter("genero");
+
+        try {
+            // Valores para los desplegables del formulario (países y géneros registrados)
+            request.setAttribute("paises", emisoraService.getPaises());
+            request.setAttribute("generos", emisoraService.getGeneros());
+
+            if (pais != null) {
+                request.setAttribute("emisoras", emisoraService.reportByPaisAndGenero(pais, genero));
+            }
+            request.getRequestDispatcher(REPORT_PAIS_GENERO_VIEW).forward(request, response);
+        } catch (InvalidEmisoraException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(REPORT_PAIS_GENERO_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos al generar el reporte.");
+            request.getRequestDispatcher(REPORT_PAIS_GENERO_VIEW).forward(request, response);
+        }
+    }
+
+    // REPORTE 2: emisoras por cobertura (rango de ciudades) con un mínimo de locutores.
+    // Sin parámetros solo muestra el formulario; con ellos, genera el reporte.
+    private void handleReportCobertura(HttpServletRequest request, HttpServletResponse response, EmisoraService emisoraService)
+            throws ServletException, IOException {
+        String minCiudades = request.getParameter("minCiudades");
+        String maxCiudades = request.getParameter("maxCiudades");
+        String minLocutores = request.getParameter("minLocutores");
+
+        if (minCiudades == null && maxCiudades == null && minLocutores == null) {
+            request.getRequestDispatcher(REPORT_COBERTURA_VIEW).forward(request, response);
+            return;
+        }
+
+        try {
+            request.setAttribute("emisoras", emisoraService.reportByCobertura(minCiudades, maxCiudades, minLocutores));
+            request.getRequestDispatcher(REPORT_COBERTURA_VIEW).forward(request, response);
+        } catch (InvalidEmisoraException e) {
+            request.setAttribute("errorMessage", e.getMessage());
+            request.getRequestDispatcher(REPORT_COBERTURA_VIEW).forward(request, response);
+        } catch (SQLException e) {
+            request.setAttribute("errorMessage", "Error de base de datos al generar el reporte.");
+            request.getRequestDispatcher(REPORT_COBERTURA_VIEW).forward(request, response);
         }
     }
 %>
