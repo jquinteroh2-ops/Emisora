@@ -206,7 +206,8 @@ de abrir NetBeans.
 - [x] Modelo de dominio y conexión a MySQL
 - [x] Persistencia y servicio de Usuario (excepciones, `UserCRUD`, `UserService`)
 - [x] Controlador JSP y vistas de Usuario (`UserController.jsp`, login, create, find_edit_delete, list_all)
-- [ ] CRUD de Emisora
+- [x] Persistencia y servicio de Emisora (excepciones, `EmisoraCRUD`, `EmisoraService`)
+- [ ] Controlador JSP y vistas de Emisora
 - [ ] Login, sesión y control de acceso
 - [ ] Reportes parametrizados (2 por entidad)
 - [ ] Recuperación de clave por correo
