@@ -121,6 +121,31 @@ Mismo patrón. El inicio y cierre de sesión solo los atiende `UserController.js
 | `deletefl` | `handleDeleteEmisoraFromList` | Elimina desde el enlace de la lista |
 | `listAll` | `handleListAllEmisoras` | Lista todas (o filtra con `q`) |
 
+## Sesión, login y control de acceso
+
+1. **Login** (`UserController.jsp?action=authenticate`): `UserService.loginUser` busca el usuario por email y
+   compara la clave cifrada con SHA-256. Si es correcta, se renueva el id de sesión y se guarda el objeto
+   `User` en la sesión como `loggedInUser`.
+2. **Control de acceso** (`WEB-INF/jspf/auth.jspf`): fragmento incluido en los controladores y en las vistas
+   internas. Su método `checkAccess(request, response, session, roles...)`:
+   - sin `loggedInUser` → muestra el login con *"Debe iniciar sesión para continuar."*;
+   - con un rol no permitido → responde **403** y muestra el inicio con *"Su rol no tiene permiso..."*.
+   Se aplica **dos veces**: en el controlador (antes del `switch`) y al inicio de cada vista interna, por si
+   alguien escribe directamente la URL de una vista.
+3. **Menús y botones según el rol** (`hasRole(...)`): `index.jsp`, `list_all.jsp` y `find_edit_delete.jsp`
+   solo muestran las opciones permitidas.
+4. **Logout** (`action=logout`): invalida la sesión.
+
+| Acción | ADMIN | OPERADOR | CONSULTA | Sin sesión |
+|---|:-:|:-:|:-:|:-:|
+| Inicio y login | ✅ | ✅ | ✅ | ✅ |
+| Listar, buscar y ver emisoras | ✅ | ✅ | ✅ | ❌ |
+| Crear, editar y eliminar emisoras | ✅ | ✅ | ❌ | ❌ |
+| Gestionar usuarios | ✅ | ❌ | ❌ | ❌ |
+
+Reglas extra: nadie puede **eliminar su propio usuario** ni **cambiar su propio rol**; si un usuario edita sus
+propios datos, la sesión se actualiza.
+
 ## Base de datos
 
 Scripts en la carpeta [`db/`](db/) (ejecutarlos en orden, por ejemplo desde MySQL Workbench con
@@ -223,7 +248,7 @@ de abrir NetBeans.
 - [x] Controlador JSP y vistas de Usuario (`UserController.jsp`, login, create, find_edit_delete, list_all)
 - [x] Persistencia y servicio de Emisora (excepciones, `EmisoraCRUD`, `EmisoraService`)
 - [x] Controlador JSP y vistas de Emisora (`EmisoraController.jsp`, create, find_edit_delete, list_all)
-- [ ] Login, sesión y control de acceso
+- [x] Login, sesión y control de acceso por rol
 - [ ] Reportes parametrizados (2 por entidad)
 - [ ] Recuperación de clave por correo
 - [ ] Despliegue en Internet

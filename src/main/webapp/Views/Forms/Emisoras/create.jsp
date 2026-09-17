@@ -9,6 +9,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="Business.Services.EmisoraService" %>
 <%@ include file="/WEB-INF/jspf/html.jspf" %>
+<%@ include file="/WEB-INF/jspf/auth.jspf" %>
+<%-- Crear emisoras: solo ADMIN y OPERADOR --%>
+<% if (!checkAccess(request, response, session, "ADMIN", "OPERADOR")) return; %>
 <!DOCTYPE html>
 <html lang="es">
 <head>

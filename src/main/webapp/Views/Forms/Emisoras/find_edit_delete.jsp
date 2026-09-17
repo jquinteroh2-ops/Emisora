@@ -11,6 +11,10 @@
 <%@ page import="Domain.Model.Emisora" %>
 <%@ page import="Business.Services.EmisoraService" %>
 <%@ include file="/WEB-INF/jspf/html.jspf" %>
+<%@ include file="/WEB-INF/jspf/auth.jspf" %>
+<%-- Cualquier usuario con sesión puede consultar; editar y eliminar solo ADMIN y OPERADOR --%>
+<% if (!checkAccess(request, response, session)) return; %>
+<% boolean canEdit = hasRole(session, "ADMIN", "OPERADOR"); %>
 <%!
     // Valor que se muestra en un campo del formulario de edición:
     // si al editar hubo un error, lo que el usuario acababa de escribir;
@@ -34,9 +38,10 @@
 </head>
 <%-- Emisora encontrada en la búsqueda (guardada en la sesión por el controlador) --%>
 <% Emisora sessionEmisora = (Emisora) session.getAttribute("searchedEmisora"); %>
-<body onload="<%= (sessionEmisora != null) ? "enableButtons()" : "disableButtons()" %>">
+<%-- Los botones Editar/Eliminar solo existen para ADMIN y OPERADOR --%>
+<body onload="<%= !canEdit ? "" : (sessionEmisora != null) ? "enableButtons()" : "disableButtons()" %>">
 <main class="container narrow">
-    <h1>Buscar, Editar o Eliminar Emisora</h1>
+    <h1><%= canEdit ? "Buscar, Editar o Eliminar Emisora" : "Consultar Emisora" %></h1>
 
     <%-- Mensajes de error o éxito --%>
     <% if (request.getAttribute("errorMessage") != null) { %>
@@ -73,6 +78,9 @@
                 <p><strong>Programas:</strong> <%= sessionEmisora.getNumProgramas() %></p>
                 <p><strong>Ciudades:</strong> <%= sessionEmisora.getNumCiudades() %></p>
             </div>
+
+            <%-- Campos de edición: solo ADMIN y OPERADOR (CONSULTA solo ve los detalles) --%>
+            <% if (canEdit) { %>
 
             <label for="nombre">Nuevo Nombre:</label>
             <input type="text" id="nombre" name="nombre" maxlength="100"
@@ -123,6 +131,7 @@
             <label for="numCiudades">Nuevo Número de ciudades:</label>
             <input type="number" id="numCiudades" name="numCiudades" min="0" step="1"
                    value="<%= fieldValue(request, "numCiudades", sessionEmisora.getNumCiudades()) %>" required>
+            <% } %>
         <% } else { %>
             <p>No se ha buscado ninguna emisora aún o la emisora no fue encontrada.</p>
         <% } %>
@@ -132,14 +141,16 @@
             <button type="submit" id="searchBtn" formnovalidate onclick="setAction('search')">
                 Buscar Emisora
             </button>
-            <button type="button" id="editBtn" disabled
-                    onclick="setActionAndSubmit('update', '¿Seguro que deseas editar esta emisora?')">
-                Editar Emisora
-            </button>
-            <button type="button" id="deleteBtn" class="danger" disabled
-                    onclick="setActionAndSubmit('delete', '¿Seguro que deseas eliminar esta emisora?')">
-                Eliminar Emisora
-            </button>
+            <% if (canEdit) { %>
+                <button type="button" id="editBtn" disabled
+                        onclick="setActionAndSubmit('update', '¿Seguro que deseas editar esta emisora?')">
+                    Editar Emisora
+                </button>
+                <button type="button" id="deleteBtn" class="danger" disabled
+                        onclick="setActionAndSubmit('delete', '¿Seguro que deseas eliminar esta emisora?')">
+                    Eliminar Emisora
+                </button>
+            <% } %>
         </div>
     </form>
 

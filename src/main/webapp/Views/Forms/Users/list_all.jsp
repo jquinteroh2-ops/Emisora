@@ -10,6 +10,9 @@
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <%@ page import="Domain.Model.User" %>
 <%@ include file="/WEB-INF/jspf/html.jspf" %>
+<%@ include file="/WEB-INF/jspf/auth.jspf" %>
+<%-- Solo el ADMIN gestiona usuarios --%>
+<% if (!checkAccess(request, response, session, "ADMIN")) return; %>
 <!DOCTYPE html>
 <html lang="es">
 <head>

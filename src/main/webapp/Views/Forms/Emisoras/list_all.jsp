@@ -10,6 +10,10 @@
 <%@ page import="java.net.URLEncoder" %>
 <%@ page import="Domain.Model.Emisora" %>
 <%@ include file="/WEB-INF/jspf/html.jspf" %>
+<%@ include file="/WEB-INF/jspf/auth.jspf" %>
+<%-- Cualquier usuario con sesión puede consultar; editar y eliminar solo ADMIN y OPERADOR --%>
+<% if (!checkAccess(request, response, session)) return; %>
+<% boolean canEdit = hasRole(session, "ADMIN", "OPERADOR"); %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -79,9 +83,14 @@
                     <td><%= emisora.getNumProgramas() %></td>
                     <td><%= emisora.getNumCiudades() %></td>
                     <td class="actions-cell">
-                        <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=search&code=<%= codeParam %>">Editar</a> |
-                        <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=deletefl&code=<%= codeParam %>"
-                           onclick="return confirm('¿Seguro que deseas eliminar esta emisora?');">Eliminar</a>
+                        <% if (canEdit) { %>
+                            <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=search&code=<%= codeParam %>">Editar</a> |
+                            <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=deletefl&code=<%= codeParam %>"
+                               onclick="return confirm('¿Seguro que deseas eliminar esta emisora?');">Eliminar</a>
+                        <% } else { %>
+                            <%-- CONSULTA solo puede ver el detalle --%>
+                            <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=search&code=<%= codeParam %>">Ver</a>
+                        <% } %>
                     </td>
                 </tr>
             <% } %>
@@ -95,7 +104,9 @@
     </div>
 
     <p class="nav-links">
-        <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=showCreateForm">Agregar Nueva Emisora</a> |
+        <% if (canEdit) { %>
+            <a href="<%= request.getContextPath() %>/Controllers/EmisoraController.jsp?action=showCreateForm">Agregar Nueva Emisora</a> |
+        <% } %>
         <a href="<%= request.getContextPath() %>/index.jsp">Menú Principal</a>
     </p>
 </main>
