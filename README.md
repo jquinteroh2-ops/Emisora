@@ -17,7 +17,10 @@ La arquitectura sigue la guía del docente **"CRUD con JSP SIN Servlet"**: no ha
 | Java (JDK) | 21 | Igual que la guía |
 | Apache Tomcat | 11.0.x | Jakarta EE 11 Web |
 | JSP + JDBC | — | Sin Spring, Hibernate ni frameworks MVC |
-| MySQL Server | 8.0 o superior | Probado con MySQL 9.7 |
+| MySQL Server | 8.0 o superior | Probado con MySQL 9.7 (ejecución local) |
+| TiDB Cloud Starter | — | Base de datos en la nube compatible con MySQL (despliegue) |
+| JavaMail (Jakarta Mail) | 2.1 | Envío del correo de recuperación por SMTP (Brevo) |
+| Docker + Render | — | Despliegue en Internet |
 | MySQL Connector/J | 9.7.0 | Lo descarga Maven automáticamente |
 | Maven | 3.9+ | Solo para compilar y empaquetar el `.war` |
 
@@ -308,6 +311,57 @@ Para detener Tomcat: `Ctrl + C`.
 **Alternativa con NetBeans:** *File → Open Project* sobre esta carpeta (se abre como proyecto Maven),
 agregar Tomcat 11 en *Tools → Servers* y ejecutar con *Run*. Las variables de entorno deben existir antes
 de abrir NetBeans.
+
+## Despliegue en Internet (Render + TiDB Cloud Starter)
+
+```
+Navegador ──HTTPS──> Render (Docker: Tomcat 11 + ROOT.war) ──JDBC + TLS──> TiDB Cloud Starter (compatible con MySQL)
+                               └──SMTP puerto 2525──> Brevo ──> correo de recuperación
+```
+
+- **[Dockerfile](Dockerfile)**: compila con Maven y ejecuta en Tomcat 11 (misma versión que en local).
+- **[render.yaml](render.yaml)**: define el servicio web gratuito en Render; las claves se escriben en Render, no en GitHub.
+- Plan gratuito de Render: si nadie visita la app en 15 minutos se "duerme" y la siguiente visita tarda
+  alrededor de 1 minuto en responder.
+- TiDB Cloud Starter se reactiva solo al recibir una conexión. TiDB no aplica por defecto las restricciones
+  `CHECK` de las tablas; esas reglas también las validan `EmisoraService` y `UserService`.
+
+### 1. Base de datos en TiDB Cloud Starter
+
+1. Crear una cuenta en <https://tidbcloud.com> (se puede entrar con Google o GitHub).
+2. Crear una instancia **Starter** (gratis) en **AWS · N. Virginia (us-east-1)**, cerca de Render.
+3. En la instancia, pulsar **Connect** y generar la contraseña (**Generate Password** / *Set Root Password*).
+   Anotar **Host**, **Port** (4000), **User** (tiene la forma `xxxxxxxx.root`) y **Password**.
+4. Cargar los scripts desde la carpeta del proyecto (TiDB exige conexión cifrada):
+
+   ```bat
+   "C:\Program Files\MySQL\MySQL Server 9.7\bin\mysql.exe" --host=HOST --port=4000 --user=USUARIO --password --ssl-mode=REQUIRED < db\01_schema.sql
+   "C:\Program Files\MySQL\MySQL Server 9.7\bin\mysql.exe" --host=HOST --port=4000 --user=USUARIO --password --ssl-mode=REQUIRED < db\02_data.sql
+   ```
+
+### 2. Aplicación en Render
+
+1. Crear una cuenta en <https://render.com> entrando con GitHub.
+2. **New → Blueprint** y elegir el repositorio `Emisora`. Render lee `render.yaml`.
+3. Escribir las variables que pide:
+
+   | Variable | Valor |
+   |---|---|
+   | `DB_URL` | `jdbc:mysql://HOST:4000/emisora_db?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3&sessionVariables=time_zone='-05:00'` |
+   | `DB_USER` | `xxxxxxxx.root` |
+   | `DB_PASSWORD` | contraseña de TiDB |
+   | `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_FROM` | datos de [Brevo](#configurar-el-envío-de-correo-con-brevo-gratis) |
+   | `APP_BASE_URL` | la dirección que asigne Render, ej. `https://emisora.onrender.com` |
+
+   `sessionVariables=time_zone='-05:00'` hace que las fechas se guarden con la hora de Colombia.
+4. Pulsar **Apply**. La primera construcción tarda varios minutos (se ve en *Logs*).
+5. Si la dirección asignada es distinta a la escrita en `APP_BASE_URL`, corregirla en **Environment**
+   (Render vuelve a desplegar solo).
+6. Probar la dirección pública en una ventana de incógnito.
+
+> **Importante:** las claves de los usuarios de prueba están publicadas en este README. En la aplicación
+> desplegada conviene cambiarlas (menú *Buscar Usuario → Nueva Contraseña*) y entregar las nuevas solo al
+> docente.
 
 ## Estado del desarrollo
 
