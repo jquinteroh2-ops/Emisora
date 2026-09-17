@@ -26,4 +26,4 @@ ENV CATALINA_OPTS="-Duser.timezone=America/Bogota -XX:MaxRAMPercentage=70"
 
 # Render indica el puerto en la variable PORT; Tomcat se ajusta a ella al iniciar (8080 por defecto)
 EXPOSE 8080
-CMD ["sh", "-c", "sed -i \"s/port=\\\"8080\\\"/port=\\\"${PORT:-8080}\\\"/\" conf/server.xml && exec catalina.sh run"]
+CMD ["sh", "-c", "sed -i \"s/port=\\\"8080\\\"/port=\\\"${PORT:-8080}\\\"/; s/port=\\\"8005\\\"/port=\\\"-1\\\"/\" conf/server.xml && exec catalina.sh run"]

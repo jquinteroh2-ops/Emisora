@@ -1,5 +1,9 @@
 # Emisora — CRUD con JSP sin Servlet
 
+**Aplicación publicada:** <https://emisora-onnt.onrender.com>
+(plan gratuito: si nadie la visita en 15 minutos se duerme y la primera carga puede tardar cerca de un minuto).
+Las claves de prueba de la aplicación publicada **no** son las de este README; se entregan aparte al docente.
+
 Actividad académica de **Desarrollo Web – Unidad 1** (Servlets/JSP: segunda generación del desarrollo web).
 **Ejercicio 25: Emisora.**
 
@@ -379,4 +383,4 @@ Navegador ──HTTPS──> Render (Docker: Tomcat 11 + ROOT.war) ──JDBC + 
 - [x] Login, sesión y control de acceso por rol
 - [x] Reportes parametrizados (2 por entidad)
 - [x] Recuperación de clave por correo (enlace de un solo uso, JavaMail + SMTP de Brevo)
-- [ ] Despliegue en Internet
+- [x] Despliegue en Internet (Render + TiDB Cloud Starter): <https://emisora-onnt.onrender.com>
